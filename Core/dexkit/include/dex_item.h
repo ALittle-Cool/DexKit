@@ -192,6 +192,7 @@ private:
 
     std::vector<uint8_t> GetOpSeqFromCode(uint32_t method_idx);
     std::vector<uint32_t> GetUsingStringsFromCode(uint32_t method_idx);
+    std::vector<uint32_t> DexItem::ExtractHexStringsFromCode(uint32_t method_idx);
     std::vector<uint32_t> GetInvokeMethodsFromCode(uint32_t method_idx);
     std::vector<EncodeNumber> GetUsingNumbersFromCode(uint32_t method_idx);
 
