@@ -1062,6 +1062,28 @@ std::vector<uint32_t> DexItem::GetUsingStringsFromCode(uint32_t method_idx) {
     return std::move(using_strings);
 }
 
+std::vector<uint32_t> DexItem::ExtractHexStringsFromCode(uint32_t method_idx) {
+    auto code = method_codes[method_idx];
+    if (code == nullptr) {
+        return {};
+    }
+    std::vector<uint32_t> hex_data;
+    auto p = code->insns;
+    auto end_p = p + code->insns_size;
+
+    while (p < end_p) {
+        auto ptr = p;
+        auto width = GetBytecodeWidth(ptr++);  // 读取当前指令宽度
+
+        uint32_t hex_value = *reinterpret_cast<const uint32_t*>(ptr);  // 读取4字节数据
+        hex_data.emplace_back(hex_value);   // 将十六进制值存入数组
+
+        p += width;  // 移动到下一条指令
+    }
+
+    return hex_data;  // 返回十六进制数据数组
+}
+
 std::vector<uint32_t> DexItem::GetInvokeMethodsFromCode(uint32_t method_idx) {
     auto code = method_codes[method_idx];
     if (code == nullptr) {
