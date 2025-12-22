@@ -3,38 +3,19 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("java-library")
     id("org.jetbrains.kotlin.jvm")
-    id("io.github.tomtzook.gradle-cmake") version "1.2.2"
 }
 
-cmake {
-    targets {
-        main {
-            cmakeLists.set(file("src/main/cpp/CMakeLists.txt"))
-            targetMachines.add(machines.host)
-            // use 'ninja' or 'unixMakefiles'
-            generator.set(generators.ninja)
-            // if you want disable jni log enable it
-            // cmakeArgs.add("-DDISABLE_DEXKIT_LOG=ON")
-            def configFlags = [
-                    "-O3",
-                    "-DNDEBUG",
-            ].join(" ")
-            cmakeArgs.add("-DCMAKE_BUILD_TYPE=Release")
-            cmakeArgs.add("-DCMAKE_CXX_FLAGS_RELEASE=$configFlags")
-            cmakeArgs.add("-DCMAKE_C_FLAGS_RELEASE=$configFlags")
-        }
-    }
-}
+// 移除了针对主机的 cmake 插件和配置
 
 java {
-    sourceCompatibility JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-    toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
 
 tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_11
-    kotlinOptions.languageVersion = "1.5"
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
+    kotlinOptions.languageVersion = "1.7"
     kotlinOptions.freeCompilerArgs += [
             "-opt-in=kotlin.RequiresOptIn",
     ]
@@ -51,43 +32,24 @@ dependencies {
 }
 
 afterEvaluate {
-    tasks.register("copyLibrary") {
-        def build = tasks.cmakeBuild
-        dependsOn(build)
-        doLast {
-            copy {
-                from layout.buildDirectory.file("cmake").get()
-                into layout.buildDirectory.file("library").get()
-                include("**/*.so", "**/*.dll", "**/*.dylib")
-                eachFile {
-                    path = name
-                }
-                includeEmptyDirs = false
-            }
-        }
-    }
-    tasks.jar.dependsOn(tasks.copyLibrary)
+//    tasks.register("copyLibrary") {
+//        def build = tasks.cmakeBuild
+//        dependsOn(build)
+//        doLast {
+//            copy {
+//                from layout.buildDirectory.file("cmake").get()
+//                into layout.buildDirectory.file("library").get()
+//                include("**/*.so", "**/*.dll", "**/*.dylib")
+//                eachFile {
+//                    path = name
+//                }
+//                includeEmptyDirs = false
+//            }
+//        }
+//    }
+//    tasks.jar.dependsOn(tasks.copyLibrary)
 
-    tasks.register("copyReleaseDemo") {
-        def assemble = project(":demo").tasks.assembleRelease
-        dependsOn(assemble)
-        doLast {
-            copy {
-                from project(":demo").layout.buildDirectory.file("outputs/apk/release").get()
-                into "$projectDir/apk"
-                include("**/*.apk")
-                eachFile {
-                    path = name
-                }
-                rename { String fileName ->
-                    fileName.replaceAll(".*\\.apk", "demo.apk")
-                }
-                includeEmptyDirs = false
-            }
-        }
-    }
-    tasks.testClasses.dependsOn(tasks.copyReleaseDemo)
-    tasks.testClasses.dependsOn(tasks.copyLibrary)
+//    tasks.testClasses.dependsOn(tasks.copyLibrary)
 }
 
-evaluationDependsOn(":demo")
+//evaluationDependsOn(":demo")

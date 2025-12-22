@@ -2,10 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("com.android.library")
-    id("com.vanniktech.maven.publish") version "0.34.0"
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.dokka")
-    id("signing")
 }
 
 def KDockRepoName = "LuckyPray/DexKit-Doc"
@@ -25,7 +22,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=none"
+                arguments "-DANDROID_STL=c++_static"
                 def flags = [
                         "-funwind-tables",
                         "-fasynchronous-unwind-tables",
@@ -84,12 +81,13 @@ android {
 
     }
 
-    sourceSets {
-        main {
-            manifest.srcFile("AndroidManifest.xml")
-            java.setSrcDirs(["${project(':dexkit').projectDir}/src/main/java"])
-        }
-    }
+    // 移除了手动设置 SrcDirs 的部分，改用标准的项目依赖
+    // sourceSets {
+    //     main {
+    //         manifest.srcFile("AndroidManifest.xml")
+    //         java.setSrcDirs(["${project(':dexkit').projectDir}/src/main/java"])
+    //     }
+    // }
 
     externalNativeBuild {
         cmake {
@@ -98,23 +96,25 @@ android {
         }
     }
 
-    buildFeatures {
-        prefab true
-    }
+//    buildFeatures {
+//        prefab true
+//    }
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
 
 tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_11
-    kotlinOptions.languageVersion = "1.5"
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
+    kotlinOptions.languageVersion = "1.7"
 }
 
 dependencies {
+    api(project(":dexkit")) // 使用 api 确保 app 也能看到 dexkit 的源码
+    api("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
-    implementation("dev.rikka.ndk.thirdparty:cxx:1.2.0")
+    // implementation("dev.rikka.ndk.thirdparty:cxx:1.2.0")
     //noinspection DifferentStdlibGradleVersion
     implementation("org.jetbrains.kotlin:kotlin-stdlib") {
         version {
@@ -125,76 +125,4 @@ dependencies {
     lintPublish(project(":lint-rules"))
 }
 
-mavenPublishing {
-    coordinates("org.luckypray", "dexkit", libVersion)
-    pom {
-        name = "dexkit"
-        description = "A high-performance runtime parsing library for dex implemented in C++."
-        url = "https://github.com/LuckyPray/DexKit"
-        licenses {
-            // LGPL-3.0 only applies to 'Core/'
-            license {
-                name = "GNU Lesser General Public License v3.0"
-                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
-                distribution = "repo"
-            }
-            // Apache 2.0 for everything except 'Core/'
-            license {
-                name = "The Apache License, Version 2.0"
-                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                distribution = "repo"
-            }
-        }
-        developers {
-            developer {
-                name.set("luckypray")
-                url.set("https://luckypray.org/DexKit")
-            }
-        }
-        scm {
-            connection = "scm:git:git://github.com/LuckyPray/DexKit.git"
-            developerConnection = "scm:git:ssh://github.com/LuckyPray/DexKit.git"
-            url = "https://github.com/LuckyPray/DexKit.git"
-        }
-    }
-    publishToMavenCentral(true)
-    signAllPublications()
-}
-
-dokkaHtml.configure {
-    dokkaSourceSets {
-        named("main") {
-            noAndroidSdkLink.set(true)
-            noStdlibLink.set(true)
-            noJdkLink.set(true)
-        }
-    }
-}
-
-tasks.register("updateKDoc") {
-    doLast {
-        def dokkaHtmlDir = layout.buildDirectory.file("dokka/html").get().asFile
-        if (dokkaHtmlDir.exists()) {
-            println(dokkaHtmlDir.absolutePath)
-            exec {
-                workingDir dokkaHtmlDir.absolutePath
-                def deployRepo = "https://username:${System.getenv("ACCESS_TOKEN")}@github.com/${KDockRepoName}.git"
-                def userName = System.getenv("GITHUB_ACTOR")
-                def userEmail = "${userName}@users.noreply.github.com"
-                if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
-                    commandLine = ["cmd", "/c"]
-                } else {
-                    commandLine = ["sh", "-c"]
-                }
-                def gitCommand = "git init -b master " +
-                        "&& git config user.name ${userName} " +
-                        "&& git config user.email ${userEmail} " +
-                        "&& git add . " +
-                        "&& git commit -m 'Auto deploy KDoc' " +
-                        "&& git push -f ${deployRepo} master:main"
-                commandLine += [gitCommand]
-                println(gitCommand)
-            }
-        }
-    }
-}
+// 移除了 mavenPublishing, dokkaHtml 和 updateKDoc 任务

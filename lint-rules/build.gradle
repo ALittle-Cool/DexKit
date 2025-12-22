@@ -5,12 +5,12 @@ plugins {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
 
 tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_11
-    kotlinOptions.languageVersion = "1.5"
+    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.languageVersion = "1.7"
 }
 
 jar {

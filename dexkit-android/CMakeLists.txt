@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.4.1)
 project(dexkit)
 
-find_package(cxx REQUIRED CONFIG)
-link_libraries(cxx::cxx)
+# find_package(cxx REQUIRED CONFIG)
+# link_libraries(cxx::cxx)
 
 add_subdirectory(../Core Core)
 
