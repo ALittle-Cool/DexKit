@@ -676,6 +676,62 @@ Java_org_luckypray_dexkit_DexKitBridge_nativeGetMethodUsingStrings(JNIEnv *env, 
     return ret;
 }
 
+DEXKIT_JNI jobjectArray
+Java_org_luckypray_dexkit_DexKitBridge_nativeGetMethodUsingNumbers(JNIEnv *env, jclass clazz,
+                                                                  jlong native_ptr,
+                                                                  jlong encode_method_id) {
+    if (!native_ptr) {
+        return {};
+    }
+    auto dexkit = reinterpret_cast<dexkit::DexKit *>(native_ptr);
+    auto result = dexkit->GetUsingNumbers(encode_method_id);
+
+    jclass number_clazz = env->FindClass("java/lang/Number");
+    jobjectArray ret = env->NewObjectArray(result.size(), number_clazz, nullptr);
+
+    jclass int_clazz = env->FindClass("java/lang/Integer");
+    jmethodID int_init = env->GetMethodID(int_clazz, "<init>", "(I)V");
+
+    jclass long_clazz = env->FindClass("java/lang/Long");
+    jmethodID long_init = env->GetMethodID(long_clazz, "<init>", "(J)V");
+
+    jclass float_clazz = env->FindClass("java/lang/Float");
+    jmethodID float_init = env->GetMethodID(float_clazz, "<init>", "(F)V");
+
+    jclass double_clazz = env->FindClass("java/lang/Double");
+    jmethodID double_init = env->GetMethodID(double_clazz, "<init>", "(D)V");
+
+    for (int i = 0; i < result.size(); ++i) {
+        jobject val_obj = nullptr;
+        auto &num = result[i];
+        switch (num.type) {
+            case dexkit::BYTE:
+                val_obj = env->NewObject(int_clazz, int_init, (jint) num.value.L8);
+                break;
+            case dexkit::SHORT:
+                val_obj = env->NewObject(int_clazz, int_init, (jint) num.value.L16);
+                break;
+            case dexkit::INT:
+                val_obj = env->NewObject(int_clazz, int_init, (jint) num.value.L32.int_value);
+                break;
+            case dexkit::LONG:
+                val_obj = env->NewObject(long_clazz, long_init, (jlong) num.value.L64.long_value);
+                break;
+            case dexkit::FLOAT:
+                val_obj = env->NewObject(float_clazz, float_init, (jfloat) num.value.L32.float_value);
+                break;
+            case dexkit::DOUBLE:
+                val_obj = env->NewObject(double_clazz, double_init, (jdouble) num.value.L64.double_value);
+                break;
+        }
+        if (val_obj) {
+            env->SetObjectArrayElement(ret, i, val_obj);
+            env->DeleteLocalRef(val_obj);
+        }
+    }
+    return ret;
+}
+
 DEXKIT_JNI jbyteArray
 Java_org_luckypray_dexkit_DexKitBridge_nativeGetMethodUsingFields(JNIEnv *env, jclass clazz,
                                                                    jlong native_ptr,

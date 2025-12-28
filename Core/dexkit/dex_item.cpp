@@ -973,6 +973,10 @@ std::vector<MethodBean> DexItem::FieldPutMethods(uint32_t field_idx) {
     return beans;
 }
 
+std::vector<EncodeNumber> DexItem::GetUsingNumbers(uint32_t method_idx) {
+    return GetUsingNumbersFromCode(method_idx);
+}
+
 std::string_view DexItem::GetMethodDescriptor(uint32_t method_idx) {
     auto &method_desc = this->method_descriptors[method_idx];
     if (method_desc != std::nullopt) {
@@ -1086,30 +1090,31 @@ void PushEncodeNumber(dex::InstructionFormat op_format, uint8_t op, const uint16
             if (value & 0x8) {
                 value |= 0xf0;
             }
-            using_numbers->emplace_back(EncodeNumber{.type = BYTE, .value = {.L8 = (int8_t) value}});
+            using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) (int8_t) value}}});
             break;
         }
         case dex::k21s: { // const/16, const-wide/16
             uint16_t value = *ptr;
-            if (value & 0x8000) {
-                value |= 0xffff0000;
+            if (op == 0x13) { // const/16
+                using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) (int16_t) value}}});
+            } else { // 0x16 const-wide/16
+                using_numbers->emplace_back(EncodeNumber{.type = LONG, .value = {.L64 = {.long_value = (int64_t) (int16_t) value}}});
             }
-            using_numbers->emplace_back(EncodeNumber{.type = SHORT, .value = {.L16 = (int16_t) value}});
             break;
         }
         case dex::k21h: { // const/high16, const-wide/high16
-            if (op == 0x15) {
-                using_numbers->emplace_back(EncodeNumber{.type = FLOAT, .value = {.L32 = {.int_value = (int32_t) (*ptr << 16)}}});
-            } else { // 0x19
-                using_numbers->emplace_back(EncodeNumber{.type = DOUBLE, .value = {.L64 = {.long_value = (int64_t) (((uint64_t) *ptr) << 48)}}});
+            if (op == 0x15) { // const/high16
+                using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) (*ptr << 16)}}});
+            } else { // 0x19 const-wide/high16
+                using_numbers->emplace_back(EncodeNumber{.type = LONG, .value = {.L64 = {.long_value = (int64_t) (((uint64_t) *ptr) << 48)}}});
             }
             break;
         }
         case dex::k31i: { // const, const-wide/32
-            if (op == 0x14) {
-                using_numbers->emplace_back(EncodeNumber{.type = FLOAT, .value = {.L32 = {.int_value = (int32_t) ReadInt(ptr)}}});
-            } else { // 0x17
+            if (op == 0x14) { // const
                 using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) ReadInt(ptr)}}});
+            } else { // 0x17 const-wide/32
+                using_numbers->emplace_back(EncodeNumber{.type = LONG, .value = {.L64 = {.long_value = (int64_t) (int32_t) ReadInt(ptr)}}});
             }
             break;
         }
@@ -1117,10 +1122,10 @@ void PushEncodeNumber(dex::InstructionFormat op_format, uint8_t op, const uint16
             using_numbers->emplace_back(EncodeNumber{.type = LONG, .value = {.L64 = {.long_value = (int64_t) ReadLong(ptr)}}});
             break;
         case dex::k22s: // binop/lit16
-            using_numbers->emplace_back(EncodeNumber{.type = SHORT, .value = {.L16 = (int16_t) *ptr}});
+            using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) (int16_t) *ptr}}});
             break;
         case dex::k22b: // binop/lit8
-            using_numbers->emplace_back(EncodeNumber{.type = BYTE, .value = {.L8 = (int8_t) (*ptr >> 8)}});
+            using_numbers->emplace_back(EncodeNumber{.type = INT, .value = {.L32 = {.int_value = (int32_t) (int8_t) (*ptr >> 8)}}});
             break;
         default:
             break;
